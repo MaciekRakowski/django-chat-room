@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<style>
+div.scroll {
+    background-color: #00FFFF;
+    width: 500px;
+    height: 100px;
+    overflow: scroll;
+}
+
+</style>
+<head>
+  <title>Pusher Test</title>
+  <script src="//js.pusher.com/2.2/pusher.min.js" type="text/javascript"></script>
+  <script type=text/javascript
+  src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+  <script type="text/javascript">
+  	
+  	function csrfSafeMethod(method) {
+  	    // these HTTP methods do not require CSRF protection
+  	    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+  	}
+  	function getCookie(name) {
+  	    var cookieValue = null;
+  	    if (document.cookie && document.cookie != '') {
+  	        var cookies = document.cookie.split(';');
+  	        for (var i = 0; i < cookies.length; i++) {
+  	            var cookie = jQuery.trim(cookies[i]);
+  	            // Does this cookie string begin with the name we want?
+  	            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+  	                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+  	                break;
+  	            }
+  	        }
+  	    }
+  	    return cookieValue;
+  	}
+  	var csrftoken = getCookie('csrftoken');
+  	$.ajaxSetup({
+  	    beforeSend: function(xhr, settings) {
+  	        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+  	            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+  	        }
+  	    }
+  	});
+  	var incomingMessages = [];
+  	
+    // Enable pusher logging - don't include this in production
+    Pusher.log = function(message) {
+      if (window.console && window.console.log) {
+        window.console.log(message);
+      }
+    };
+
+    var pusher = new Pusher('373a11faaef13cc238f8');
+    var channel = pusher.subscribe('test_channel');
+	var count = 0;
+    channel.bind('my_event', function(data) {
+      //alert(data.message);
+	  mainDiv = document.getElementById('mainDiv');
+	  count++;
+	  mainDiv.innerHTML = "Count is " + count;
+    });
+    
+    channel.bind('onmessage', function(data) {
+        //alert(data.message);
+		mainDiv = document.getElementById('divMessages');
+		count++;
+		mainDiv.innerHTML += data.themessage + '<br>'
+	  	var objDiv = document.getElementById("container");
+	  	objDiv.scrollTop = objDiv.scrollHeight;
+      });
+    
+    function ButtonClick() {
+    	$.post( "/RegisterPusher", {'themessage': document.getElementById('textareaMessage').value.trim()},
+    			function(data) {    		  
+    		});
+    }
+    
+
+    function OnTextPressed(event) {
+        var key = event.keyCode;
+
+        // If the user has pressed enter
+        //if (key == 13 && !window.event.shiftKey) {
+        if (key == 13 && !event.shiftKey) {
+        	ButtonClick();
+        	textarea = document.getElementById('textareaMessage');
+        	//mainDiv = document.getElementById('button');
+        	//mainDiv.focus();
+        	textarea.value = '';
+        		
+        	textarea.focus();        	
+        	return true;
+        }
+        else {
+            return true;
+        }
+    }
+    function onTextChanged(event) {
+    	//var key = window.event.keyCode
+    	var key = event.keyCode;
+    	
+        //if (key == 13 && !window.event.shiftKey) {
+        if (key == 13 && !event.shiftKey) {
+        	//ButtonClick();
+        	//textarea = document.getElementById('textareaMessage');
+        	//textarea.value = '';
+        	return true;
+        }
+        else {
+            return true;
+        }
+    }
+  </script>
+</head>
+<body>
+{% csrf_token %}
+
+	{% if user.name %}
+		Welcome, {{user.name}}<br>
+	{% else %}
+		<form method="POST">{% csrf_token %}
+			<input id="username" name="username" type="text">
+			<input id="password" name="password" type="password">
+			<input type="submit" value="Submit">
+		</form>
+	{% endif %}
+
+	<div id='mainDiv'></div>
+	
+	
+	<br>
+	<br>
+	<div class='scroll' id='container'>
+	<div id='divMessages'></div>
+	</div>
+	<!--  onkeypress="OnTextPressed()" onkeyup="onTextChanged()"  -->
+	<textarea id="textareaMessage" onkeyup="OnTextPressed(event);" rows="5" cols="70"></textarea>
+	<br>
+	<button id="button" onclick="ButtonClick()" >Send Message</button>
+</body>
