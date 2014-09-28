@@ -118,12 +118,6 @@ div.scroll {
 
 	{% if user.name %}
 		Welcome, {{user.name}}<br>
-	{% else %}
-		<form method="POST">{% csrf_token %}
-			<input id="username" name="username" type="text">
-			<input id="password" name="password" type="password">
-			<input type="submit" value="Submit">
-		</form>
 	{% endif %}
 
 	<div id='mainDiv'></div>
