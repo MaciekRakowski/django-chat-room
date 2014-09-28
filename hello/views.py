@@ -12,10 +12,6 @@ from .models import User
 from .models import ValidatePassword
 from pip._vendor.requests.models import Response
 
-import datetime
-import pymongo
-from pymongo import MongoClient
-
 from django.core.cache import cache
 
 # Create your views here.
