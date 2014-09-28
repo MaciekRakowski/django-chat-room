@@ -78,6 +78,13 @@ DATABASES = {
 #     }
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'my_cache_table',
+    }
+}
+
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
 
