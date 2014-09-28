@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.cache import cache
 
 # Create your models here.
 class Greeting(models.Model):
@@ -11,22 +12,22 @@ class Greeting(models.Model):
 class User(models.Model):
     def __init__(self):
         super(User, self).__init__()
-        self.name = None
+        self.name = ''
         self.LoggedIn = False
+        self.RegisterErrorMessage = ''
         #self.
  
     def IsLoggedIn(self):
         return self.LoggedIn
 
-class User2(models.Model):
-    def __init__(self):
-        super(User2, self).__init__()
-        self.name = None
-        self.LoggedIn = False
-        #self.
- 
-    def IsLoggedIn(self):
-        return self.LoggedIn
- 
+
+PREFIX = 'user-'
+def AddUser(username, password):
+    cache.set(PREFIX + username, password)
+
+def UserTaken(username):
+    return cache.get(PREFIX + username) != None
+
 def ValidatePassword(username, password):
-    return password == 'password'
+    return cache.get(PREFIX + username) and cache.get(PREFIX + username) == password
+

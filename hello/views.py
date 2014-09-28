@@ -6,7 +6,7 @@ from django.core.context_processors import csrf
 from django.shortcuts import render_to_response
 
 #import psycopg2
-
+import models
 from .models import Greeting
 from .models import User
 from .models import ValidatePassword
@@ -42,8 +42,6 @@ def index(request):
     #return render(request, 'pusher.html')
     user = GetUser(request)
     c = {'user': user}
-    cerf = csrf(request)
-    print cerf
     c.update(csrf(request))
     # ... view code here
     response = render_to_response("pusher.html", c)
@@ -55,14 +53,55 @@ def index(request):
         response = HttpResponseRedirect('/login')
         return response
 
+def RegisterUser(username, password, retypepassword):
+    if len(password) < 6:
+        return 'Password must be 5 Characters.'
+    if password != retypepassword:
+        return 'Passwords must match.'
+    if (len(username) < 6):
+        return 'Username must be 6 characters in length.'
+    if models.UserTaken(username):
+        return 'Username is taken'
+    models.AddUser(username, password)
+    return ''    
+
+def GetRegisterResponse(request):
+    user = User()
+    username = request.POST.get('username', '')
+    user.name = username
+    password = request.POST.get('password', '')
+    retypepassword = request.POST.get('retypepassword', '')
+    errormessage = RegisterUser(username, password, retypepassword)
+    if errormessage:
+        user.RegisterErrorMessage = errormessage
+        args = {'user': user}
+        args.update(csrf(request))
+        response = render_to_response("login.html", args)
+        return response
+    # add user
+    cache.set('user-' + user.name, password)
+    response = HttpResponseRedirect('/')
+    response.set_cookie('username', user.name)
+    return response
+
 def login(request):
-    #if request.POST['register']:
-        
-    user = GetUser(request)
-    if user.IsLoggedIn():
-        return HttpResponseRedirect('/')
-    else:
-        return render_to_response("login.html", {'user': user}) 
+    if request.POST.get('register', None):#Register User
+        return GetRegisterResponse(request)
+
+    username = request.POST.get('username', '')
+    password = request.POST.get('password', '')
+    print 'user is ' + username
+    if username and models.ValidatePassword(username, password):
+        response = HttpResponseRedirect('/')
+        response.set_cookie('username', username)
+        return response
+    print 'did NOT validate'
+    user = User()
+    args = {'user': user}
+    args.update(csrf(request))
+    response = render_to_response("login.html", args)
+    return response
+
 
 def RegisterPusher(request):
     p = pusher.Pusher(
@@ -82,52 +121,17 @@ def RegisterPusher(request):
     return HttpResponse('Registered!')  
 
 def db(request):
+    user = User()
+    user.name = "maciek"
+    cache.set("name", user)
+
+    print cache.get("name").name
+    
     value = request.GET.get('value', None)
     if (value):
         cache.set("key", value)
         return HttpResponse("value set to " + value) 
     else:
-        value = cache.get("key")
+        value = cache.get("key") or '[none]'
         return HttpResponse("value read is " + value) 
      
-#     print 'getting client'
-#     client = MongoClient('mongodb://user:pass@server.compose.io/database_name')
-#      
-#     print 'getting db'
-#     # Specify the database
-#     db = client.mytestdatabase
-#     # Print a list of collections
-#     print db.collection_names()
-#      
-#     # Specify the collection, in this case 'monsters'
-#     collection = db.monsters
-#      
-#     # Get a count of the documents in this collection
-#     count = collection.count()
-#     print "The number of documents you have in this collection is:", count
-#      
-#     # Create a document for a monster
-#     monster = {"name": "Dracula",
-#                "occupation": "Blood Sucker",
-#                "tags": ["vampire", "teeth", "bat"],
-#                "date": datetime.datetime.utcnow()
-#                }
-#      
-#     # Insert the monster document into the monsters collection
-#     monster_id = collection.insert(monster)
-#      
-#     # Print out our monster documents
-#     for monster in collection.find():
-#         print monster
-#      
-#     # Query for a particular monster
-#     print collection.find_one({"name": "Dracula"})
-#     return HttpResponse('done!') 
-
-#     greeting = Greeting()
-#     greeting.save()
-# 
-#     greetings = Greeting.objects.all()
-# 
-#     return render(request, 'db.html', {'greetings': greetings})
-

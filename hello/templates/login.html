@@ -13,17 +13,20 @@ div.scroll {
 </head>
 <body>
 <form method="POST">{% csrf_token %}
-	Username: <input value="{{% user.name %}}" id="username" name="username" type="text"><br>
+	Username: <input value="{{ user.name }}" id="username" name="username" type="text"><br>
 	Password: <input id="password" name="password" type="password">
 	<input type="submit" value="Submit">
 </form>
 
+<div>
 <form method="POST">{% csrf_token %}
-	Username: <input value="{{% user.name %}}" id="username" name="username" type="text"><br>
-	Password: <input id="password" name="password" type="password">
-	Retype Password: <input id="password" name="password" type="password">
+	Username: <input value="{{ user.name }}" id="username" name="username" type="text"><br>
+	Password: <input id="password" name="password" type="password"><br>
+	Retype Password: <input id="retypepassword" name="retypepassword" type="password"><br>
 	<input type="hidden" name="register" value="register">
 	<input type="submit" value="Register">
 </form>
+</div>
 
+<p>{{ user.RegisterErrorMessage }}</p>
 </body>
