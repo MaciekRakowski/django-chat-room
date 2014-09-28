@@ -82,7 +82,7 @@ def RegisterPusher(request):
     return HttpResponse('Registered!')  
 
 def db(request):
-    value = request.GET['value']
+    value = request.GET.get('value', None)
     if (value):
         cache.set("key", value)
         return HttpResponse("value set to " + value) 
