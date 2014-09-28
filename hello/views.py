@@ -82,10 +82,14 @@ def RegisterPusher(request):
     return HttpResponse('Registered!')  
 
 def db(request):
-    cache.set("key", "maciek rakowski")
-    value = cache.get("key")
-    
-    return HttpResponse(value) 
+    value = request.GET['value']
+    if (value):
+        cache.set("key", value)
+        return HttpResponse("value set to " + value) 
+    else:
+        value = cache.get("key")
+        return HttpResponse("value read is " + value) 
+     
 #     print 'getting client'
 #     client = MongoClient('mongodb://user:pass@server.compose.io/database_name')
 #      
