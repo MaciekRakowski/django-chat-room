@@ -14,6 +14,9 @@ from pip._vendor.requests.models import Response
 
 from django.core.cache import cache
 
+import pymongo
+from pymongo import MongoClient
+
 # Create your views here.
 
 # Hackish login that will be replaced with either Heroku SSO, Facebook Login, or another proper login.
@@ -120,18 +123,39 @@ def RegisterPusher(request):
         p['test_channel'].trigger('onmessage', {'themessage': message})
     return HttpResponse('Registered!')  
 
-def db(request):
-    user = User()
-    user.name = "maciek"
-    cache.set("name", user)
+def GetValue(collection, key):
+    result = collection.find_one({'key': key})
+    if not result:
+        return ''
+    if 'value' in result:
+        return result['value']
+    return ''
 
-    print cache.get("name").name
-    
+def db(request):
+    client = MongoClient('mongodb://maciek:gosia1@ds039880.mongolab.com:39880/maciek')
+    db = client.maciek
+    collection = db.key_value_pairs    
     value = request.GET.get('value', None)
-    if (value):
-        cache.set("key", value)
+    if value:
+        collection.insert({'key': 'name', 'value': value})
         return HttpResponse("value set to " + value) 
     else:
-        value = cache.get("key") or '[none]'
-        return HttpResponse("value read is " + value) 
+        value = GetValue(collection, 'name')
+        if not value:
+            value = '[None]'
+        return HttpResponse("value read is " + value)
+        
+#     user = User()
+#     user.name = "maciek"
+#     cache.set("name", user)
+# 
+#     print cache.get("name").name
+#     
+#     value = request.GET.get('value', None)
+#     if (value):
+#         cache.set("key", value)
+#         return HttpResponse("value set to " + value) 
+#     else:
+#         value = cache.get("key") or '[none]'
+#         return HttpResponse("value read is " + value) 
      
