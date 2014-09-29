@@ -55,8 +55,11 @@ class DataLayer(object):
         print 'adding chatroom'
         chatroomId = self._GenerateChatroomId(chatroomName)
         print 'ID is ' + chatroomId
-        if self.ChatRooms.find_one({chatroomName: chatroomId}):
+        result = self.ChatRooms.find_one({'id': chatroomId})
+        print result
+        if result:
             return 'The Chatroom {0} already exists.'.format(chatroomName)
+        
         self.ChatRooms.insert({'name': chatroomName, 'id': chatroomId})
         return ''
 
