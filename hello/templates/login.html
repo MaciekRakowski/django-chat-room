@@ -19,6 +19,8 @@ div.scroll {
 </form>
 
 <div>
+<br><br>
+<p>If you do not exist in the system, register below!</p>
 <form method="POST">{% csrf_token %}
 	Username: <input value="{{ user.name }}" id="username" name="username" type="text"><br>
 	Password: <input id="password" name="password" type="password"><br>
@@ -28,5 +30,5 @@ div.scroll {
 </form>
 </div>
 
-<p>{{ user.RegisterErrorMessage }}</p>
+<p>* {{ user.RegisterErrorMessage }}</p>
 </body>

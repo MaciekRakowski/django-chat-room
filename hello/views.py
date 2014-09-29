@@ -9,24 +9,39 @@ from django.shortcuts import render_to_response
 import models
 from .models import Greeting
 from .models import User
-from .models import ValidatePassword
 from pip._vendor.requests.models import Response
 
 from django.core.cache import cache
 
-
-
-import pymongo
 from pymongo import MongoClient
 
 # Create your views here.
-
+DATALAYER = None
 # Hackish login that will be replaced with either Heroku SSO, Facebook Login, or another proper login.
+def GetDataLayer():
+    #key = "datalayer"
+    global DATALAYER
+    value = DATALAYER#cache.get(key)
+    if value:
+        print 'getting cached data layer'
+        return value
+    print 'no cached data layer'
+    datalayer = models.DataLayer()
+    
+    print 'done setting temp'
+    DATALAYER = datalayer
+    #cache.set(key, datalayer)
+    print 'done setting data layer'
+    return datalayer
+
 def GetUser(request):
     user = User()
+    print 'getting data layer'
+    datalayer = GetDataLayer()
+    print 'got data layer'
     if request.method == 'POST':
         username = request.POST['username']
-        if ValidatePassword(username, request.POST['password']):
+        if datalayer.ValidatePassword(username, request.POST['password']):
             user.name = username
             user.LoggedIn = True
     elif request.method == 'GET':
@@ -35,9 +50,10 @@ def GetUser(request):
 
 def ValidateUser(request):
     user = User()
+    datalayer = GetDataLayer()
     if request.method == 'POST':
         username = request.POST['username']
-        if ValidatePassword(username, request.POST['password']):
+        if datalayer.ValidatePassword(username, request.POST['password']):
             user.name = username
     elif request.method == 'GET':
         user.name = request.COOKIES.get('username', None)
@@ -59,15 +75,16 @@ def index(request):
         return response
 
 def RegisterUser(username, password, retypepassword):
+    datalayer = GetDataLayer()
     if len(password) < 6:
         return 'Password must be 5 Characters.'
     if password != retypepassword:
         return 'Passwords must match.'
-    if (len(username) < 6):
-        return 'Username must be 6 characters in length.'
-    if models.UserTaken(username):
+    if (len(username) < 3):
+        return 'Username must be at least 3 characters in length.'
+    if datalayer.UserTaken(username):
         return 'Username is taken'
-    models.AddUser(username, password)
+    datalayer.AddUser(username, password)
     return ''    
 
 def GetRegisterResponse(request):
@@ -90,22 +107,30 @@ def GetRegisterResponse(request):
     return response
 
 def login(request):
-    if request.POST.get('register', None):#Register User
-        return GetRegisterResponse(request)
-
-    username = request.POST.get('username', '')
-    password = request.POST.get('password', '')
-    print 'user is ' + username
-    if username and models.ValidatePassword(username, password):
-        response = HttpResponseRedirect('/')
-        response.set_cookie('username', username)
+    if request.method == 'POST':
+        if request.POST.get('register', None):#Register User
+            return GetRegisterResponse(request)
+    
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+        datalayer = GetDataLayer()
+        print 'user is ' + username
+        if username and datalayer.ValidatePassword(username, password):
+            response = HttpResponseRedirect('/')
+            response.set_cookie('username', username)
+            return response
+        print 'did NOT validate'
+        user = User()
+        user.RegisterErrorMessage = 'Invalid name/password combination.'
+        args = {'user': user}
+        args.update(csrf(request))
+        response = render_to_response("login.html", args)
         return response
-    print 'did NOT validate'
-    user = User()
-    args = {'user': user}
-    args.update(csrf(request))
-    response = render_to_response("login.html", args)
-    return response
+    else:
+        args = {'user': User()}
+        args.update(csrf(request))
+        response = render_to_response("login.html", args)
+        return response
 
 
 def RegisterPusher(request):
