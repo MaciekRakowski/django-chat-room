@@ -45,8 +45,13 @@ def GetUser(request):
             user.name = username
             user.LoggedIn = True
     elif request.method == 'GET':
-        user.name = request.COOKIES.get('username', None)
+        user.name = request.COOKIES.get('username', None)    
     return user
+
+def Logout(request):
+    request.session.flush()
+    response = HttpResponseRedirect('/login')
+    return response
 
 def ValidateUser(request):
     user = User()

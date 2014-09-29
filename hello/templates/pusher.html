@@ -160,7 +160,9 @@ div.scroll {
     //ALL METHODS BELOW ARE FOR DRAWING ON THE CANVAS.
     var CurrentLine = []
     var isMouseDown = false;
-
+    var canvas = null;
+    var ctx = null;
+    
 	function CanvasMouseDown() {
 		isMouseDown = true;
 		CurrentLine = []
@@ -179,46 +181,62 @@ div.scroll {
 		  x: evt.clientX - rect.left,
 		  y: evt.clientY - rect.top
 		};
+	} 
+	
+	function OnMouseMove(evt) {
+		if (!isMouseDown) {
+			return;
+		}
+        
+		//var canvas=document.getElementById("myCanvas");
+		ctx=canvas.getContext("2d");
+		ctx.beginPath();	
+		ctx.moveTo(Math.floor(PreviousPoint.x), Math.floor(PreviousPoint.y));
+		var mousePos = getMousePos(canvas, evt);
+		mousePos.x = Math.floor(mousePos.x);
+		mousePos.y = Math.floor(mousePos.y);
+		CurrentLine.push(mousePos)
+		ctx.lineTo(Math.floor(mousePos.x), Math.floor(mousePos.y));
+		ctx.stroke();
+		
+		PreviousPoint = mousePos;
+	}
+	
+	function OnMouseDown(evt) {
+		
+		//var canvas = document.getElementById('myCanvas');
+		var mousePos = getMousePos(canvas, evt);
+		PreviousPoint = mousePos;
+		CurrentLine = []
+		CurrentLine.push(mousePos)
+		isMouseDown = true;
+	}
+	
+	function OnMouseUp(evt) {
+		isMouseDown = false;
+		SendLine();
 	}
 	
 	PreviousPoint = null;
 	function InitializeFunction() {
-		var canvas = document.getElementById('myCanvas');
-		canvas.addEventListener('mousedown', function(evt) {
-			var mousePos = getMousePos(canvas, evt);
-			PreviousPoint = mousePos;
-			CurrentLine = []
-			CurrentLine.push(mousePos)
-			isMouseDown = true;
-		}, false);
+		canvas = document.getElementById('myCanvas');
+		ctx=canvas.getContext("2d");
+		canvas.addEventListener('mousedown', OnMouseDown, false);
 	
-		canvas.addEventListener('mouseup', function(evt) {
-			isMouseDown = false;
-			SendLine();
-		}, false);
+		canvas.addEventListener('mouseup', OnMouseUp, false);
 	
 	
-		canvas.addEventListener('mousemove', function(evt) {
-			if (!isMouseDown) {
-				return;
-			}
-			var c=document.getElementById("myCanvas");
-			var ctx=c.getContext("2d");
-			ctx.beginPath();	
-			ctx.moveTo(Math.floor(PreviousPoint.x), Math.floor(PreviousPoint.y));
-			var mousePos = getMousePos(canvas, evt);
-			mousePos.x = Math.floor(mousePos.x);
-			mousePos.y = Math.floor(mousePos.y);
-			CurrentLine.push(mousePos)
-			ctx.lineTo(Math.floor(mousePos.x), Math.floor(mousePos.y));
-			ctx.stroke();
-			
-			PreviousPoint = mousePos;
-		}, false);
+		canvas.addEventListener('mousemove', OnMouseMove, false);
+		
+        can.addEventListener("touchstart", OnMouseDown, false);
+        can.addEventListener("touchmove", OnMouseMove, true);
+        can.addEventListener("touchend", OnMouseUp, false);
 	}
   </script>
 </head>
 <body onload="InitializeFunction()">
+<a href="Logout" style="text-align:right">Log Out</a>
+<br><br>
 {% csrf_token %}
 
 Welcome, {{user.name}}<br>
