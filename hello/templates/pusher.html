@@ -61,21 +61,66 @@ div.scroll {
 	  mainDiv.innerHTML = "Count is " + count;
     });
     
-    channel.bind('onmessage', function(data) {
-        //alert(data.message);
-		mainDiv = document.getElementById('divMessages');
-		count++;
-		mainDiv.innerHTML += data.themessage + '<br>'
-	  	var objDiv = document.getElementById("container");
-	  	objDiv.scrollTop = objDiv.scrollHeight;
+      channel.bind('onmessage-{{user.CurrentChatRoom}}', function(data) {
+          //alert(data.message);
+  		mainDiv = document.getElementById('divMessages');
+  		count++;
+  		mainDiv.innerHTML += data.themessage + '<br>'
+  	  	var objDiv = document.getElementById("container");
+  	  	objDiv.scrollTop = objDiv.scrollHeight;
       });
+      
+      function Point(x, y) {
+    	  this.x = x;
+    	  this.y = y;
+      }
+      
+      function GetPointFromSplitArray(pointsAsString, index) {
+		  pointAsStr = pointsAsString[index].split(',');
+		  var x = parseFloat(pointAsStr[0]);  			
+		  var y = parseFloat(pointAsStr[1]);
+		  return new Point(x, y);
+      }
+      
+      channel.bind('onmessage-{{user.CurrentChatRoom}}-draw', function(data) {
+          //alert(data.message);
+  		 if (data.username == '{{user.name}}') {
+  			 return;
+  		 }
+  		 
+  		 var pointsAsString = data.theline.split('|');
+  		 var c=document.getElementById("myCanvas");
+  		 var ctx=c.getContext("2d");
+  		 //ctx.beginPath();
+  		 var prevPoint = GetPointFromSplitArray(pointsAsString, 0);
+  		 //ctx.moveTo(firstPoint.x, firstPoint.y);
+  		 for (var index = 1; index < pointsAsString.length; index++) {  			
+  			  ctx.beginPath();
+  			  ctx.moveTo(prevPoint.x, prevPoint.y);
+			  var point = GetPointFromSplitArray(pointsAsString, index);
+			  ctx.lineTo(point.x, point.y);		  		
+			  ctx.stroke();
+			  prevPoint = point;
+  		 }
+      }); 
     
     function ButtonClick() {
-    	$.post( "/RegisterPusher", {'themessage': document.getElementById('textareaMessage').value.trim()},
-    			function(data) {    		  
-    		});
+    	$.post( "/RegisterPusher", {'themessage': document.getElementById('textareaMessage').value.trim(),
+    								'chatroom': '{{user.CurrentChatRoom}}'},
+    			function(data) {});
     }
     
+    function SendLine() {
+    	var lineData = ''
+    	
+    	for (var index = 0; index < CurrentLine.length; index++) {
+    		line = CurrentLine[index]
+    		lineData += line.x + ',' + line.y + '|'
+    	}
+    	$.post( "/DrawLineEvent", {'theline': lineData,
+			'chatroom': '{{user.CurrentChatRoom}}'},
+			function(data) {});
+    }
 
     function OnTextPressed(event) {
         var key = event.keyCode;
@@ -111,14 +156,73 @@ div.scroll {
             return true;
         }
     }
+        
+    //ALL METHODS BELOW ARE FOR DRAWING ON THE CANVAS.
+    var CurrentLine = []
+    var isMouseDown = false;
+
+	function CanvasMouseDown() {
+		isMouseDown = true;
+		CurrentLine = []
+	}
+	
+	function CanvasMouseUp() {
+		isMouseDown = false;
+	}
+	
+	function CanvasMouseMove() {
+	
+	}
+	function getMousePos(canvas, evt) {
+		var rect = canvas.getBoundingClientRect();
+		return {
+		  x: evt.clientX - rect.left,
+		  y: evt.clientY - rect.top
+		};
+	}
+	
+	PreviousPoint = null;
+	function InitializeFunction() {
+		var canvas = document.getElementById('myCanvas');
+		canvas.addEventListener('mousedown', function(evt) {
+			var mousePos = getMousePos(canvas, evt);
+			PreviousPoint = mousePos;
+			CurrentLine = []
+			CurrentLine.push(mousePos)
+			isMouseDown = true;
+		}, false);
+	
+		canvas.addEventListener('mouseup', function(evt) {
+			isMouseDown = false;
+			SendLine();
+		}, false);
+	
+	
+		canvas.addEventListener('mousemove', function(evt) {
+			if (!isMouseDown) {
+				return;
+			}
+			var c=document.getElementById("myCanvas");
+			var ctx=c.getContext("2d");
+			ctx.beginPath();	
+			ctx.moveTo(Math.floor(PreviousPoint.x), Math.floor(PreviousPoint.y));
+			var mousePos = getMousePos(canvas, evt);
+			mousePos.x = Math.floor(mousePos.x);
+			mousePos.y = Math.floor(mousePos.y);
+			CurrentLine.push(mousePos)
+			ctx.lineTo(Math.floor(mousePos.x), Math.floor(mousePos.y));
+			ctx.stroke();
+			
+			PreviousPoint = mousePos;
+		}, false);
+	}
   </script>
 </head>
-<body>
+<body onload="InitializeFunction()">
 {% csrf_token %}
 
-	{% if user.name %}
-		Welcome, {{user.name}}<br>
-	{% endif %}
+Welcome, {{user.name}}<br>
+You're in the room: {{user.CurrentChatRoom}}
 
 	<div id='mainDiv'></div>
 	
@@ -128,8 +232,13 @@ div.scroll {
 	<div class='scroll' id='container'>
 	<div id='divMessages'></div>
 	</div>
-	<!--  onkeypress="OnTextPressed()" onkeyup="onTextChanged()"  -->
 	<textarea id="textareaMessage" onkeyup="OnTextPressed(event);" rows="5" cols="70"></textarea>
 	<br>
 	<button id="button" onclick="ButtonClick()" >Send Message</button>
+	<br><br>
+	<canvas id="myCanvas" width="500" height="500" style="border:1px solid #000000;"> </canvas>
+	<br>
+	<br>
+	<br>
+	<a href="/ShowChatRooms">Click here to enter a different chat room</a>
 </body>

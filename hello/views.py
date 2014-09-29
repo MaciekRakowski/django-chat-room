@@ -62,6 +62,8 @@ def ValidateUser(request):
 def index(request):
     #return render(request, 'pusher.html')
     user = GetUser(request)
+    chatroom = request.GET.get('chatroom', 'default')
+    user.CurrentChatRoom = chatroom
     c = {'user': user}
     c.update(csrf(request))
     # ... view code here
@@ -76,16 +78,7 @@ def index(request):
 
 def RegisterUser(username, password, retypepassword):
     datalayer = GetDataLayer()
-    if len(password) < 6:
-        return 'Password must be 5 Characters.'
-    if password != retypepassword:
-        return 'Passwords must match.'
-    if (len(username) < 3):
-        return 'Username must be at least 3 characters in length.'
-    if datalayer.UserTaken(username):
-        return 'Username is taken'
-    datalayer.AddUser(username, password)
-    return ''    
+    return datalayer.AddUser(username, password)
 
 def GetRegisterResponse(request):
     user = User()
@@ -102,7 +95,8 @@ def GetRegisterResponse(request):
         return response
     # add user
     cache.set('user-' + user.name, password)
-    response = HttpResponseRedirect('/')
+    #response = HttpResponseRedirect('/')
+    response = HttpResponseRedirect('/ShowChatRooms')
     response.set_cookie('username', user.name)
     return response
 
@@ -116,11 +110,12 @@ def login(request):
         datalayer = GetDataLayer()
         print 'user is ' + username
         if username and datalayer.ValidatePassword(username, password):
-            response = HttpResponseRedirect('/')
+            response = HttpResponseRedirect('/ShowChatRooms')
             response.set_cookie('username', username)
             return response
         print 'did NOT validate'
         user = User()
+        user.name = username
         user.RegisterErrorMessage = 'Invalid name/password combination.'
         args = {'user': user}
         args.update(csrf(request))
@@ -132,6 +127,23 @@ def login(request):
         response = render_to_response("login.html", args)
         return response
 
+def DrawLineEvent(request):
+    print 'On Draw Line Event.'
+    p = pusher.Pusher(
+      app_id='90808',
+      key='373a11faaef13cc238f8',
+      secret='257d521aeb17e184b501'
+    )
+    if request.method == 'POST':
+        theline = request.POST['theline']
+        chatroom = request.POST.get('chatroom', None)
+        if not chatroom:
+            return HttpResponse('select chat room')        
+        username = request.COOKIES.get('username', None)
+        print 'the line is ' + theline + ' for user ' + username
+        #message = '{0}: {1}'.format(username, message.replace('\n', '<br>'))
+        p['test_channel'].trigger('onmessage-{0}-draw'.format(chatroom), {'theline': theline, 'username': username})
+    return HttpResponse('Drew Line!')  
 
 def RegisterPusher(request):
     p = pusher.Pusher(
@@ -143,11 +155,14 @@ def RegisterPusher(request):
     #return HttpResponse('Registered!')    
     if request.method == 'POST':
         message = request.POST['themessage']
+        chatroom = request.POST.get('chatroom', None)
+        if not chatroom:
+            return HttpResponse('select chat room')
         print 'getting username'
         username = request.COOKIES.get('username', None)
         print 'username is ' + username
         message = '{0}: {1}'.format(username, message.replace('\n', '<br>'))
-        p['test_channel'].trigger('onmessage', {'themessage': message})
+        p['test_channel'].trigger('onmessage-' + chatroom, {'themessage': message})
     return HttpResponse('Registered!')  
 
 def GetValue(collection, key):
@@ -172,17 +187,22 @@ def db(request):
             value = '[None]'
         return HttpResponse("value read is " + value)
         
-#     user = User()
-#     user.name = "maciek"
-#     cache.set("name", user)
-# 
-#     print cache.get("name").name
-#     
-#     value = request.GET.get('value', None)
-#     if (value):
-#         cache.set("key", value)
-#         return HttpResponse("value set to " + value) 
-#     else:
-#         value = cache.get("key") or '[none]'
-#         return HttpResponse("value read is " + value) 
-     
+def ShowChatRooms(request):
+    print 'on show chat rooms...'
+    datalayer = GetDataLayer()
+    args = {}
+    args['message'] = ''
+    args.update(csrf(request))
+    if request.method == 'POST':
+        chatroom = request.POST.get('chatroom', None)
+        if (chatroom == 'default'):
+            args['message'] = 'Cannot add default chatroom'
+            return render_to_response("ShowChatRooms.html", args)
+        message = datalayer.AddChatRoom(chatroom)        
+        args['message'] = message if message else 'Chatoom "%s" Successfully Added.' % chatroom
+    chatRooms = datalayer.GetAllChatRooms()
+    args['ChatRooms'] = chatRooms    
+    response = render_to_response("ShowChatRooms.html", args)
+    return response
+        
+        
