@@ -83,7 +83,7 @@ def index(request):
 
 def RegisterUser(username, password, retypepassword):
     datalayer = GetDataLayer()
-    return datalayer.AddUser(username, password)
+    return datalayer.AddUser(username, password, retypepassword)
 
 def GetRegisterResponse(request):
     user = User()

@@ -175,13 +175,33 @@ div.scroll {
 	function CanvasMouseMove() {
 	
 	}
+	
+	
 	function getMousePos(canvas, evt) {
-		var rect = canvas.getBoundingClientRect();
-		return {
+		if (evt.clientX) {
+			var rect = canvas.getBoundingClientRect();		
+			x = evt.clientX - rect.left;
+			y = evt.clientY - rect.top;
+			return new Point(x, y);
+		}
+		else {
+			return touchXY(canvas, evt);
+		}
+		/*return {
 		  x: evt.clientX - rect.left,
 		  y: evt.clientY - rect.top
-		};
+		};*/
 	} 
+	
+	
+   function touchXY(canvas, evt) {
+		if (!evt)
+			var evt = event;
+		evt.preventDefault();
+		canX = evt.targetTouches[0].pageX - canvas.offsetLeft;
+		canY = evt.targetTouches[0].pageY - canvas.offsetTop;
+		return new Point(canX, canY);
+	}
 	
 	function OnMouseMove(evt) {
 		if (!isMouseDown) {
@@ -228,9 +248,9 @@ div.scroll {
 	
 		canvas.addEventListener('mousemove', OnMouseMove, false);
 		
-        can.addEventListener("touchstart", OnMouseDown, false);
-        can.addEventListener("touchmove", OnMouseMove, true);
-        can.addEventListener("touchend", OnMouseUp, false);
+		canvas.addEventListener("touchstart", OnMouseDown, false);
+		canvas.addEventListener("touchmove", OnMouseMove, true);
+		canvas.addEventListener("touchend", OnMouseUp, false);
 	}
   </script>
 </head>
