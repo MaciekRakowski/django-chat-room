@@ -7,13 +7,7 @@ from django.shortcuts import render_to_response
 #import psycopg2
 import SimpleChatApplication
 from SimpleChatApplication.models import User
-
-from django.core.cache import cache
-
-from pymongo import MongoClient
 import cgi
-
-
 
 # Create your views here.
 DATALAYER = None
@@ -141,7 +135,6 @@ def DrawLineEvent(request):
             p['test_channel'].trigger('onmessage-{0}-draw'.format(chatroom), {'ClearCanvas': 'True', 'username': username})
             return HttpResponse('Cleared Canvas!') 
         theline = request.POST['theline']
-        print 'adding line to room ' + chatroom + '.'
         datalayer.AddLineToChatRoom(chatroom, theline)
 
         p['test_channel'].trigger('onmessage-{0}-draw'.format(chatroom), {'theline': theline, 'username': username})
@@ -165,14 +158,6 @@ def PushMessages(request):
         p['test_channel'].trigger('onmessage-' + chatroom, {'themessage': message})
     return HttpResponse('Registered!')  
 
-def GetValue(collection, key):
-    result = collection.find_one({'key': key})
-    if not result:
-        return ''
-    if 'value' in result:
-        return result['value']
-    return ''
-        
 def ShowChatRooms(request):
     datalayer = GetDataLayer()
     args = {}
