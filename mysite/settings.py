@@ -17,7 +17,7 @@ import dj_database_url
 #environ.Env.read_env() # reading .env file
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-CONNECTION_STRING = 'http://ancient-brushlands-7700.herokuapp.com/'#env('CONNECTION_STRING')
+CONNECTION_STRING = 'mongodb://maciek:gosia1@ds039880.mongolab.com:39880/maciek'#env('CONNECTION_STRING')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
