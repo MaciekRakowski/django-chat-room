@@ -13,7 +13,6 @@ urlpatterns = patterns('',
     url(r'^DrawLineEvent$', SimpleChatApplication.views.DrawLineEvent, name='DrawLineEvent'),
 	url(r'^ShowChatRooms$', SimpleChatApplication.views.ShowChatRooms, name='ShowChatRooms'),
     url(r'^login$', SimpleChatApplication.views.login, name='login'),
-    url(r'^db$', SimpleChatApplication.views.db, name='db'),
-	url(r'^RegisterPusher', SimpleChatApplication.views.RegisterPusher, name='RegisterPusher'),
+	url(r'^PushMessages', SimpleChatApplication.views.PushMessages, name='PushMessages'),
     url(r'^admin/', include(admin.site.urls)),
 )

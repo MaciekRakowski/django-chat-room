@@ -40,39 +40,12 @@ def GetUser(request):
         user.name = request.COOKIES.get('username', None)    
     return user
 
+# Hackish login/logout/validate methods that need to go away.
 def Logout(request):
     # TODO: Fix hackish hackish logout.
     response = HttpResponseRedirect('/login')
     response.delete_cookie('username')
     return response
-
-def ValidateUser(request):
-    user = User()
-    datalayer = GetDataLayer()
-    if request.method == 'POST':
-        username = request.POST['username']
-        if datalayer.ValidatePassword(username, request.POST['password']):
-            user.name = username
-    elif request.method == 'GET':
-        user.name = request.COOKIES.get('username', None)
-    return user
-
-def index(request):
-    #return render(request, 'pusher.html')
-    user = GetUser(request)
-    chatroom = request.GET.get('chatroom', 'default')
-    user.CurrentChatRoom = chatroom
-    c = {'user': user}
-    c.update(csrf(request))
-    # ... view code here
-    response = render_to_response("pusher.html", c)
-    if user.name:
-        response.set_cookie('authenticated', True)
-        response.set_cookie('username', user.name)
-        return response
-    else:
-        response = HttpResponseRedirect('/login')
-        return response
 
 def RegisterUser(username, password, retypepassword):
     datalayer = GetDataLayer()
@@ -120,6 +93,37 @@ def login(request):
         response = render_to_response("login.html", args)
         return response
 
+def ValidateUser(request):
+    user = User()
+    datalayer = GetDataLayer()
+    if request.method == 'POST':
+        username = request.POST['username']
+        if datalayer.ValidatePassword(username, request.POST['password']):
+            user.name = username
+    elif request.method == 'GET':
+        user.name = request.COOKIES.get('username', None)
+    return user
+# End of Hackish login that will be replaced with either Heroku SSO, Facebook Login, or another proper login.
+
+def index(request):
+    user = GetUser(request)
+    datalayer = GetDataLayer()
+    chatroom = request.GET.get('chatroom', 'default')
+    lines = datalayer.GetLinesFromChatRoom(chatroom)
+    user.CurrentChatRoom = chatroom
+    args = {'user': user}
+    args['lines'] = lines
+    args.update(csrf(request))
+    # ... view code here
+    response = render_to_response("ChatRoom.html", args)
+    if user.name:
+        response.set_cookie('authenticated', True)
+        response.set_cookie('username', user.name)
+        return response
+    else:
+        response = HttpResponseRedirect('/login')
+        return response
+
 def DrawLineEvent(request):
     p = pusher.Pusher(
       app_id='90808',
@@ -127,15 +131,23 @@ def DrawLineEvent(request):
       secret='257d521aeb17e184b501'
     )
     if request.method == 'POST':
-        theline = request.POST['theline']
+        datalayer = GetDataLayer()
         chatroom = request.POST.get('chatroom', None)
         if not chatroom:
             return HttpResponse('select chat room')        
         username = request.COOKIES.get('username', None)
+        if request.POST.get('ClearCanvas', None):
+            
+            datalayer.ClearLinesInChatroom(chatroom)
+            p['test_channel'].trigger('onmessage-{0}-draw'.format(chatroom), {'ClearCanvas': 'True', 'username': username})
+            return HttpResponse('Cleared Canvas!') 
+        theline = request.POST['theline']
+        datalayer.AddLineToChatRoom(chatroom, theline)
+
         p['test_channel'].trigger('onmessage-{0}-draw'.format(chatroom), {'theline': theline, 'username': username})
     return HttpResponse('Drew Line!')  
 
-def RegisterPusher(request):
+def PushMessages(request):
     p = pusher.Pusher(
 	  app_id='90808',
 	  key='373a11faaef13cc238f8',
@@ -160,20 +172,6 @@ def GetValue(collection, key):
     if 'value' in result:
         return result['value']
     return ''
-
-def db(request):
-    client = MongoClient('mongodb://maciek:gosia1@ds039880.mongolab.com:39880/maciek')
-    db = client.maciek
-    collection = db.key_value_pairs    
-    value = request.GET.get('value', None)
-    if value:
-        collection.insert({'key': 'name', 'value': value})
-        return HttpResponse("value set to " + value) 
-    else:
-        value = GetValue(collection, 'name')
-        if not value:
-            value = '[None]'
-        return HttpResponse("value read is " + value)
         
 def ShowChatRooms(request):
     datalayer = GetDataLayer()
@@ -191,5 +189,4 @@ def ShowChatRooms(request):
     args['ChatRooms'] = chatRooms    
     response = render_to_response("ShowChatRooms.html", args)
     return response
-        
-        
+

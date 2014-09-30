@@ -29,12 +29,30 @@ class ChatRoom(object):
         self.users = []
 
 class DataLayer(object):
-    CONNECTION_STRING = mysite.settings.CONNECTION_STRING#'mongodb://maciek:gosia1@ds039880.mongolab.com:39880/maciek'
+    CONNECTION_STRING = mysite.settings.CONNECTION_STRING
     def __init__(self):
         self.client = MongoClient(DataLayer.CONNECTION_STRING)
         self.users = self.client.maciek.users
         self.ChatRooms = self.client.maciek.chatrooms
+        self.ChatroomLines = self.client.maciek.chatroomlines
 
+    def AddLineToChatRoom(self, chatroom, lineData):
+        result = self.ChatroomLines.find_one({'chatroom': chatroom})
+        if not result:
+            self.ChatroomLines.insert({'chatroom': chatroom, 'linedata': lineData})
+            return
+        currentLineData = result['linedata']
+        currentLineData += ';' + lineData
+        self.ChatroomLines.update({'chatroom': chatroom}, {'$set': {'linedata': currentLineData}})
+    
+    def GetLinesFromChatRoom(self, chatroom):
+        result = self.ChatroomLines.find_one({'chatroom': chatroom})
+        if not result:
+            return ''
+        return result['linedata']
+    
+    def ClearLinesInChatroom(self, chatroom):
+        self.ChatroomLines.remove({'chatroom': chatroom})
 
     def AddUser(self, username, password, retypepassword):
         if len(password) < 6:
