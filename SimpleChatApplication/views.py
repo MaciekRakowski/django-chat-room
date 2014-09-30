@@ -5,8 +5,8 @@ from django.core.context_processors import csrf
 from django.shortcuts import render_to_response
 
 #import psycopg2
-import models
-from .models import User
+import SimpleChatApplication
+from SimpleChatApplication.models import User
 
 from django.core.cache import cache
 
@@ -26,7 +26,7 @@ def GetDataLayer():
         print 'getting cached data layer'
         return value
     print 'no cached data layer'
-    datalayer = models.DataLayer()
+    datalayer = SimpleChatApplication.models.DataLayer()
     
     print 'done setting temp'
     DATALAYER = datalayer
