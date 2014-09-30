@@ -11,7 +11,7 @@ from SimpleChatApplication.models import User
 from django.core.cache import cache
 
 from pymongo import MongoClient
-
+import cgi
 
 
 
@@ -19,26 +19,18 @@ from pymongo import MongoClient
 DATALAYER = None
 # Hackish login that will be replaced with either Heroku SSO, Facebook Login, or another proper login.
 def GetDataLayer():
-    #key = "datalayer"
     global DATALAYER
-    value = DATALAYER#cache.get(key)
+    value = DATALAYER
     if value:
-        print 'getting cached data layer'
         return value
-    print 'no cached data layer'
     datalayer = SimpleChatApplication.models.DataLayer()
     
-    print 'done setting temp'
     DATALAYER = datalayer
-    #cache.set(key, datalayer)
-    print 'done setting data layer'
     return datalayer
 
 def GetUser(request):
     user = User()
-    print 'getting data layer'
     datalayer = GetDataLayer()
-    print 'got data layer'
     if request.method == 'POST':
         username = request.POST['username']
         if datalayer.ValidatePassword(username, request.POST['password']):
@@ -99,9 +91,6 @@ def GetRegisterResponse(request):
         args.update(csrf(request))
         response = render_to_response("login.html", args)
         return response
-    # add user
-    cache.set('user-' + user.name, password)
-    #response = HttpResponseRedirect('/')
     response = HttpResponseRedirect('/ShowChatRooms')
     response.set_cookie('username', user.name)
     return response
@@ -114,12 +103,10 @@ def login(request):
         username = request.POST.get('username', '')
         password = request.POST.get('password', '')
         datalayer = GetDataLayer()
-        print 'user is ' + username
         if username and datalayer.ValidatePassword(username, password):
             response = HttpResponseRedirect('/ShowChatRooms')
             response.set_cookie('username', username)
             return response
-        print 'did NOT validate'
         user = User()
         user.name = username
         user.RegisterErrorMessage = 'Invalid name/password combination.'
@@ -134,7 +121,6 @@ def login(request):
         return response
 
 def DrawLineEvent(request):
-    print 'On Draw Line Event.'
     p = pusher.Pusher(
       app_id='90808',
       key='373a11faaef13cc238f8',
@@ -146,8 +132,6 @@ def DrawLineEvent(request):
         if not chatroom:
             return HttpResponse('select chat room')        
         username = request.COOKIES.get('username', None)
-        print 'the line is ' + theline + ' for user ' + username
-        #message = '{0}: {1}'.format(username, message.replace('\n', '<br>'))
         p['test_channel'].trigger('onmessage-{0}-draw'.format(chatroom), {'theline': theline, 'username': username})
     return HttpResponse('Drew Line!')  
 
@@ -157,16 +141,14 @@ def RegisterPusher(request):
 	  key='373a11faaef13cc238f8',
 	  secret='257d521aeb17e184b501'
     )
-    #p['test_channel'].trigger('my_event', {'message': 'hello world'})
-    #return HttpResponse('Registered!')    
+
     if request.method == 'POST':
         message = request.POST['themessage']
         chatroom = request.POST.get('chatroom', None)
         if not chatroom:
             return HttpResponse('select chat room')
-        print 'getting username'
         username = request.COOKIES.get('username', None)
-        print 'username is ' + username
+        message = cgi.escape(message)
         message = '{0}: {1}'.format(username, message.replace('\n', '<br>'))
         p['test_channel'].trigger('onmessage-' + chatroom, {'themessage': message})
     return HttpResponse('Registered!')  
@@ -194,7 +176,6 @@ def db(request):
         return HttpResponse("value read is " + value)
         
 def ShowChatRooms(request):
-    print 'on show chat rooms...'
     datalayer = GetDataLayer()
     args = {}
     args['message'] = ''
