@@ -137,11 +137,11 @@ def DrawLineEvent(request):
             return HttpResponse('select chat room')        
         username = request.COOKIES.get('username', None)
         if request.POST.get('ClearCanvas', None):
-            
             datalayer.ClearLinesInChatroom(chatroom)
             p['test_channel'].trigger('onmessage-{0}-draw'.format(chatroom), {'ClearCanvas': 'True', 'username': username})
             return HttpResponse('Cleared Canvas!') 
         theline = request.POST['theline']
+        print 'adding line to room ' + chatroom + '.'
         datalayer.AddLineToChatRoom(chatroom, theline)
 
         p['test_channel'].trigger('onmessage-{0}-draw'.format(chatroom), {'theline': theline, 'username': username})

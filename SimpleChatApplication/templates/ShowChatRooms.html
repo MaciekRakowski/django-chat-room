@@ -13,7 +13,7 @@
 <br><br>
 <p>Below is the list of available chat rooms:</p>
  {% for chatroom in ChatRooms %}
- 	<a href="/?chatroom={{chatroom.Name}}">Room: {{chatroom.Id}}</a>
+ 	<a href="/?chatroom={{chatroom.Id}}">Room: {{chatroom.Name}}</a>
  	<br><br>
  {% endfor %}
  {{message}}
